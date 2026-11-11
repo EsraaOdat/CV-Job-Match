@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: jobs
+    description: Attributed public remote job listings
 paths:
   /healthz:
     get:
@@ -24,6 +26,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /jobs/search:
+    get:
+      operationId: searchJobs
+      tags: [jobs]
+      summary: Search public remote job listings
+      description: Searches the public Himalayas remote-jobs API. CV contents are never sent to this endpoint.
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 120
+        - name: country
+          in: query
+          required: false
+          description: ISO 3166-1 alpha-2 country code for candidate eligibility.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            pattern: "^[A-Z]{2}$"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 1
+      responses:
+        "200":
+          description: Matching public remote job listings with required attribution metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobSearchResponse"
+        "400":
+          description: Invalid search filters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: The public job source is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +85,117 @@ components:
           type: string
       required:
         - status
+    JobSearchResponse:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/JobListing"
+        meta:
+          $ref: "#/components/schemas/JobSearchMeta"
+      required: [jobs, meta]
+    JobListing:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        companyName:
+          type: string
+        description:
+          type: string
+        employmentType:
+          type: ["string", "null"]
+        seniority:
+          type: ["string", "null"]
+        locationRestrictions:
+          type: array
+          items:
+            type: string
+        categories:
+          type: array
+          items:
+            type: string
+        minSalary:
+          type: ["number", "null"]
+        maxSalary:
+          type: ["number", "null"]
+        currency:
+          type: ["string", "null"]
+        salaryPeriod:
+          type: ["string", "null"]
+        publishedAt:
+          type: ["string", "null"]
+          format: date-time
+        applicationUrl:
+          type: string
+          format: uri
+        sourceUrl:
+          type: string
+          format: uri
+        companyLogo:
+          type: ["string", "null"]
+          format: uri
+        remote:
+          type: boolean
+      required:
+        - id
+        - title
+        - companyName
+        - description
+        - employmentType
+        - seniority
+        - locationRestrictions
+        - categories
+        - minSalary
+        - maxSalary
+        - currency
+        - salaryPeriod
+        - publishedAt
+        - applicationUrl
+        - sourceUrl
+        - companyLogo
+        - remote
+    JobSearchMeta:
+      type: object
+      properties:
+        source:
+          type: string
+          enum: [Himalayas]
+        fetchedAt:
+          type: string
+          format: date-time
+        totalCount:
+          type: integer
+        returnedCount:
+          type: integer
+        page:
+          type: integer
+        nextPage:
+          type: ["integer", "null"]
+        requestedCountry:
+          type: ["string", "null"]
+        cacheStatus:
+          type: string
+          enum: [fresh, stale]
+        sourceNote:
+          type: string
+      required:
+        - source
+        - fetchedAt
+        - totalCount
+        - returnedCount
+        - page
+        - nextPage
+        - requestedCountry
+        - cacheStatus
+        - sourceNote
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
 

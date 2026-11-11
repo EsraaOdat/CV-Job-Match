@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Mirsad — Career Match"
+description = "A privacy-first career matching app for job seekers across professions. It reads Arabic- or English-language CVs on the user's device, lets them review an editable profile, matches it to attributed public remote jobs, and opens targeted searches for Jordan and Gulf job boards."
+version = "1.0.0"
+id = "artifacts/mirsad"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23702
+
+[services.development]
+run = "pnpm --filter @workspace/mirsad run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mirsad", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/mirsad/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23702"
+BASE_PATH = "/"
