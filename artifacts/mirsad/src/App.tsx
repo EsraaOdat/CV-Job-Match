@@ -571,7 +571,7 @@ function OpportunityDashboard() {
               )}
 
               {jobsQuery.isLoading && profileReady && <JobSkeletons />}
-              {jobsQuery.isError && profileReady && !responseErrorDismissed && (
+              {jobsQuery.isError && profileReady && (
                 <div className="mirsad-card flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center" role="alert" data-testid="state-jobs-error">
                   <p className="m-0 flex-1 text-[12px] text-[#875d4b]">{t.error}</p>
                   <button type="button" onClick={() => void jobsQuery.refetch()} disabled={jobsQuery.isFetching} className="mirsad-button px-3 py-2 text-[10px] disabled:opacity-60" data-testid="button-retry-jobs"><RefreshCw className="h-3.5 w-3.5" />{t.retry}</button>

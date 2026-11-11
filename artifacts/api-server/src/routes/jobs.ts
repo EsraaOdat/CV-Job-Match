@@ -252,7 +252,7 @@ router.get("/jobs/search", async (req, res): Promise<void> => {
     }
 
     req.log.error(
-      { source: "Himalayas", error },
+      { source: "Himalayas", err: error },
       "Remote job source request failed",
     );
     res.status(502).json({
