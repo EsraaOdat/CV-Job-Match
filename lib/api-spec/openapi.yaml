@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: jobs
     description: Attributed public remote job listings
+  - name: match
+    description: AI analysis of a CV or skills list against live job listings
 paths:
   /healthz:
     get:
@@ -76,8 +78,159 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /match:
+    post:
+      operationId: matchProfile
+      tags: [match]
+      summary: Analyze a CV or skills and return suggested roles and ranked jobs
+      description: Sends the CV text or skills to Claude to extract a profile, searches Himalayas for the suggested roles, then scores each job against the profile.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchRequest"
+      responses:
+        "200":
+          description: Profile analysis with ranked jobs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchResponse"
+        "400":
+          description: Missing or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: The AI service or job source failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: The server has no Anthropic API key configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
+    MatchRequest:
+      type: object
+      properties:
+        cvText:
+          type: string
+          maxLength: 60000
+        skills:
+          type: string
+          maxLength: 4000
+        language:
+          type: string
+          enum: [ar, en]
+        country:
+          type: ["string", "null"]
+          description: ISO 3166-1 alpha-2 code used to keep only jobs open to candidates in that country. Null searches worldwide.
+          pattern: "^[A-Z]{2}$"
+      required: [language]
+    MatchResponse:
+      type: object
+      properties:
+        profile:
+          $ref: "#/components/schemas/CandidateProfile"
+        suggestedRoles:
+          type: array
+          items:
+            $ref: "#/components/schemas/SuggestedRole"
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/MatchedJob"
+        missingSkills:
+          type: array
+          items:
+            $ref: "#/components/schemas/MissingSkill"
+        meta:
+          $ref: "#/components/schemas/MatchMeta"
+      required: [profile, suggestedRoles, jobs, missingSkills, meta]
+    CandidateProfile:
+      type: object
+      properties:
+        summary:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        seniority:
+          type: string
+        yearsOfExperience:
+          type: ["number", "null"]
+      required: [summary, skills, seniority, yearsOfExperience]
+    SuggestedRole:
+      type: object
+      properties:
+        title:
+          type: string
+        reason:
+          type: string
+        searchQuery:
+          type: string
+        fitScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+      required: [title, reason, searchQuery, fitScore]
+    MatchedJob:
+      type: object
+      properties:
+        job:
+          $ref: "#/components/schemas/JobListing"
+        matchScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        matchedSkills:
+          type: array
+          items:
+            type: string
+        missingSkills:
+          type: array
+          items:
+            type: string
+        reason:
+          type: string
+        role:
+          type: string
+          description: The suggested role whose search returned this job.
+      required: [job, matchScore, matchedSkills, missingSkills, reason, role]
+    MissingSkill:
+      type: object
+      properties:
+        skill:
+          type: string
+        reason:
+          type: string
+        jobCount:
+          type: integer
+      required: [skill, reason, jobCount]
+    MatchMeta:
+      type: object
+      properties:
+        source:
+          type: string
+          enum: [Himalayas]
+        fetchedAt:
+          type: string
+          format: date-time
+        model:
+          type: string
+        requestedCountry:
+          type: ["string", "null"]
+        searchedWorldwide:
+          type: boolean
+      required: [source, fetchedAt, model, requestedCountry, searchedWorldwide]
     HealthStatus:
       type: object
       properties:

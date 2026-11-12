@@ -74,3 +74,83 @@ export const SearchJobsResponse = zod.object({
 })
 
 
+/**
+ * Sends the CV text or skills to Claude to extract a profile, searches Himalayas for the suggested roles, then scores each job against the profile.
+ * @summary Analyze a CV or skills and return suggested roles and ranked jobs
+ */
+export const matchProfileBodyCvTextMax = 60000;
+
+export const matchProfileBodySkillsMax = 4000;
+
+export const matchProfileBodyCountryRegExp = new RegExp('^[A-Z]{2}$');
+
+
+export const MatchProfileBody = zod.object({
+  "cvText": zod.string().max(matchProfileBodyCvTextMax).optional(),
+  "skills": zod.string().max(matchProfileBodySkillsMax).optional(),
+  "language": zod.enum(['ar', 'en']),
+  "country": zod.string().regex(matchProfileBodyCountryRegExp).nullish().describe('ISO 3166-1 alpha-2 code used to keep only jobs open to candidates in that country. Null searches worldwide.')
+})
+
+export const matchProfileResponseSuggestedRolesItemFitScoreMin = 0;
+export const matchProfileResponseSuggestedRolesItemFitScoreMax = 100;
+
+export const matchProfileResponseJobsItemMatchScoreMin = 0;
+export const matchProfileResponseJobsItemMatchScoreMax = 100;
+
+
+
+export const MatchProfileResponse = zod.object({
+  "profile": zod.object({
+  "summary": zod.string(),
+  "skills": zod.array(zod.string()),
+  "seniority": zod.string(),
+  "yearsOfExperience": zod.number().nullable()
+}),
+  "suggestedRoles": zod.array(zod.object({
+  "title": zod.string(),
+  "reason": zod.string(),
+  "searchQuery": zod.string(),
+  "fitScore": zod.number().int().min(matchProfileResponseSuggestedRolesItemFitScoreMin).max(matchProfileResponseSuggestedRolesItemFitScoreMax)
+})),
+  "jobs": zod.array(zod.object({
+  "job": zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "companyName": zod.string(),
+  "description": zod.string(),
+  "employmentType": zod.string().nullable(),
+  "seniority": zod.string().nullable(),
+  "locationRestrictions": zod.array(zod.string()),
+  "categories": zod.array(zod.string()),
+  "minSalary": zod.number().nullable(),
+  "maxSalary": zod.number().nullable(),
+  "currency": zod.string().nullable(),
+  "salaryPeriod": zod.string().nullable(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "applicationUrl": zod.string().url(),
+  "sourceUrl": zod.string().url(),
+  "companyLogo": zod.string().url().nullable(),
+  "remote": zod.boolean()
+}),
+  "matchScore": zod.number().int().min(matchProfileResponseJobsItemMatchScoreMin).max(matchProfileResponseJobsItemMatchScoreMax),
+  "matchedSkills": zod.array(zod.string()),
+  "missingSkills": zod.array(zod.string()),
+  "reason": zod.string(),
+  "role": zod.string().describe('The suggested role whose search returned this job.')
+})),
+  "missingSkills": zod.array(zod.object({
+  "skill": zod.string(),
+  "reason": zod.string(),
+  "jobCount": zod.number().int()
+})),
+  "meta": zod.object({
+  "source": zod.enum(['Himalayas']),
+  "fetchedAt": zod.coerce.date(),
+  "model": zod.string(),
+  "requestedCountry": zod.string().nullable(),
+  "searchedWorldwide": zod.boolean()
+})
+})
+
+

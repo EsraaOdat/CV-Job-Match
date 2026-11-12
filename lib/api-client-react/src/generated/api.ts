@@ -6,11 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
@@ -19,11 +23,13 @@ import type {
   ErrorResponse,
   HealthStatus,
   JobSearchResponse,
+  MatchRequest,
+  MatchResponse,
   SearchJobsParams
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
-import type { ErrorType } from '../custom-fetch';
+import type { ErrorType , BodyType } from '../custom-fetch';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -211,4 +217,93 @@ export function useSearchJobs<TData = Awaited<ReturnType<typeof searchJobs>>, TE
 
 
 
+
+export const getMatchProfileUrl = () => {
+
+
+
+
+  return `/api/match`
+}
+
+/**
+ * Sends the CV text or skills to Claude to extract a profile, searches Himalayas for the suggested roles, then scores each job against the profile.
+ * @summary Analyze a CV or skills and return suggested roles and ranked jobs
+ */
+export const matchProfile = async (matchRequest: MatchRequest, options?: Parameters<typeof customFetch>[1]): Promise<MatchResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<MatchResponse>(getMatchProfileUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(matchRequest)
+  }
+);}
+
+
+
+
+
+export const getMatchProfileMutationKey = () => ['matchProfile'] as const;
+
+export const getMatchProfileMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof matchProfile>>, TError,MatchProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof matchProfile>>, TError,MatchProfileMutationVariables, TContext> => {
+
+const mutationKey = getMatchProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof matchProfile>>, MatchProfileMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  matchProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MatchProfileMutationResult = NonNullable<Awaited<ReturnType<typeof matchProfile>>>
+    export type MatchProfileMutationBody = BodyType<MatchRequest>
+    export type MatchProfileMutationError = ErrorType<ErrorResponse>
+    export type MatchProfileMutationVariables = {data: BodyType<MatchRequest>}
+
+    /**
+ * @summary Analyze a CV or skills and return suggested roles and ranked jobs
+ */
+export const useMatchProfile = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof matchProfile>>, TError,MatchProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof matchProfile>>,
+        TError,
+        MatchProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMatchProfileMutationOptions(options));
+    }
 

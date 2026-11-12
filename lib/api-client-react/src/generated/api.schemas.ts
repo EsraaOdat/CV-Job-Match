@@ -5,8 +5,45 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
+export type MatchRequestLanguage = typeof MatchRequestLanguage[keyof typeof MatchRequestLanguage];
+
+
+export const MatchRequestLanguage = {
+  ar: 'ar',
+  en: 'en',
+} as const;
+
+export interface MatchRequest {
+  /** @maxLength 60000 */
+  cvText?: string;
+  /** @maxLength 4000 */
+  skills?: string;
+  language: MatchRequestLanguage;
+  /**
+     * ISO 3166-1 alpha-2 code used to keep only jobs open to candidates in that country. Null searches worldwide.
+     * @nullable
+     * @pattern ^[A-Z]{2}$
+     */
+  country?: string | null;
+}
+
+export interface CandidateProfile {
+  summary: string;
+  skills: string[];
+  seniority: string;
+  /** @nullable */
+  yearsOfExperience: number | null;
+}
+
+export interface SuggestedRole {
+  title: string;
+  reason: string;
+  searchQuery: string;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  fitScore: number;
 }
 
 export interface JobListing {
@@ -35,6 +72,54 @@ export interface JobListing {
   /** @nullable */
   companyLogo: string | null;
   remote: boolean;
+}
+
+export interface MatchedJob {
+  job: JobListing;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  matchScore: number;
+  matchedSkills: string[];
+  missingSkills: string[];
+  reason: string;
+  /** The suggested role whose search returned this job. */
+  role: string;
+}
+
+export interface MissingSkill {
+  skill: string;
+  reason: string;
+  jobCount: number;
+}
+
+export type MatchMetaSource = typeof MatchMetaSource[keyof typeof MatchMetaSource];
+
+
+export const MatchMetaSource = {
+  Himalayas: 'Himalayas',
+} as const;
+
+export interface MatchMeta {
+  source: MatchMetaSource;
+  fetchedAt: string;
+  model: string;
+  /** @nullable */
+  requestedCountry: string | null;
+  searchedWorldwide: boolean;
+}
+
+export interface MatchResponse {
+  profile: CandidateProfile;
+  suggestedRoles: SuggestedRole[];
+  jobs: MatchedJob[];
+  missingSkills: MissingSkill[];
+  meta: MatchMeta;
+}
+
+export interface HealthStatus {
+  status: string;
 }
 
 export type JobSearchMetaSource = typeof JobSearchMetaSource[keyof typeof JobSearchMetaSource];

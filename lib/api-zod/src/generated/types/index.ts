@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './candidateProfile';
 export * from './errorResponse';
 export * from './healthStatus';
 export * from './jobListing';
@@ -13,4 +14,12 @@ export * from './jobSearchMeta';
 export * from './jobSearchMetaCacheStatus';
 export * from './jobSearchMetaSource';
 export * from './jobSearchResponse';
+export * from './matchedJob';
+export * from './matchMeta';
+export * from './matchMetaSource';
+export * from './matchRequest';
+export * from './matchRequestLanguage';
+export * from './matchResponse';
+export * from './missingSkill';
 export * from './searchJobsParams';
+export * from './suggestedRole';
