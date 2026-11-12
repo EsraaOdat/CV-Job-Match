@@ -77,7 +77,7 @@ const text = {
     needInput: 'ارفع سيرتك الذاتية أو اكتب مهاراتك أولاً.',
     steps: ['قراءة خبرتك ومهاراتك…', 'اختيار المسميات الوظيفية المناسبة…', 'البحث عن وظائف منشورة…', 'حساب نسبة التطابق لكل وظيفة…'],
     stepsNote: 'قد يستغرق ذلك حتى دقيقة.',
-    errorTitle: 'لم يكتمل التحليل', retry: 'إعادة المحاولة',
+    errorTitle: 'لم يكتمل التحليل', serverDown: 'لا يوجد رد من سيرفر الـ API. تأكد أن السيرفر شغّال (pnpm dev) وراجع الأخطاء في الـ terminal.', retry: 'إعادة المحاولة',
     profileTitle: 'ملفك المهني كما فهمه الذكاء الاصطناعي', seniority: 'المستوى', years: 'سنوات الخبرة', yourSkills: 'مهاراتك',
     rolesTitle: 'مسميات وظيفية تناسبك', fit: 'ملاءمة', searchOn: 'ابحث عنها في',
     missingTitle: 'مهارات تزيد فرصك', missingSub: 'مطلوبة في الوظائف التي وجدناها وغير موجودة في ملفك.', inJobs: 'وظيفة تطلبها',
@@ -109,7 +109,7 @@ const text = {
     needInput: 'Upload your CV or enter your skills first.',
     steps: ['Reading your experience and skills…', 'Choosing job titles that fit…', 'Searching published jobs…', 'Scoring each job against your profile…'],
     stepsNote: 'This can take up to a minute.',
-    errorTitle: 'The analysis did not finish', retry: 'Try again',
+    errorTitle: 'The analysis did not finish', serverDown: 'No response from the API server. Make sure it is running (pnpm dev) and check the terminal for errors.', retry: 'Try again',
     profileTitle: 'Your profile, as the AI understood it', seniority: 'Level', years: 'Years of experience', yourSkills: 'Your skills',
     rolesTitle: 'Job titles that fit you', fit: 'Fit', searchOn: 'Search it on',
     missingTitle: 'Skills that would boost your chances', missingSub: 'Asked for by the jobs we found, but missing from your profile.', inJobs: 'jobs ask for it',
@@ -171,14 +171,19 @@ function boardLinks(role: string, countryCode: string) {
   ];
 }
 
-function errorMessage(error: unknown, fallback: string) {
+function errorMessage(error: unknown, fallback: string, serverDown: string) {
   if (error && typeof error === 'object' && 'data' in error) {
     const data = (error as { data?: unknown }).data;
     if (data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string') {
       return (data as { error: string }).error;
     }
   }
-  return fallback;
+  // No JSON error body: the request never reached the API server (not running, or crashed).
+  const status = error && typeof error === 'object' && 'status' in error ? (error as { status?: unknown }).status : undefined;
+  if (status === undefined || status === 500 || status === 502 || status === 503 || status === 504 || status === 404) {
+    return `${serverDown}${typeof status === 'number' ? ` (HTTP ${status})` : ''}`;
+  }
+  return `${fallback} (HTTP ${String(status)})`;
 }
 
 function App() {
@@ -415,7 +420,7 @@ function MatchDashboard() {
               <div className="mirsad-card mb-8 flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center" role="alert">
                 <div className="flex-1">
                   <div className="text-[13px] font-extrabold text-[#875d4b]">{t.errorTitle}</div>
-                  <p className="mb-0 mt-1 text-[11px] leading-5 text-[#875d4b]">{errorMessage(match.error, t.errorTitle)}</p>
+                  <p className="mb-0 mt-1 text-[11px] leading-5 text-[#875d4b]">{errorMessage(match.error, t.errorTitle, t.serverDown)}</p>
                 </div>
                 <button type="button" onClick={analyze} className="mirsad-button px-3 py-2 text-[11px]"><RefreshCw className="h-3.5 w-3.5" />{t.retry}</button>
               </div>
