@@ -68,6 +68,13 @@ catalog:
 
 autoInstallPeers: false
 
+# Newer pnpm versions (10.26+) read allowBuilds; older ones read onlyBuiltDependencies.
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+  msw: true
+  unrs-resolver: true
+
 onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
