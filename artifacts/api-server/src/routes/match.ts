@@ -1,9 +1,9 @@
 import { Router, type IRouter } from "express";
 import { MatchProfileBody, MatchProfileResponse } from "@workspace/api-zod";
 import {
+  activeModel,
+  AiError,
   callTool,
-  ClaudeError,
-  CLAUDE_MODEL,
   hasApiKey,
   MissingApiKeyError,
 } from "../lib/claude";
@@ -198,8 +198,8 @@ router.post("/match", async (req, res): Promise<void> => {
     res.status(503).json({
       error:
         language === "ar"
-          ? "مفتاح Claude API غير مضبوط على السيرفر. أضف ANTHROPIC_API_KEY إلى ملف artifacts/api-server/.env ثم أعد تشغيل السيرفر."
-          : "The Claude API key is not configured. Add ANTHROPIC_API_KEY to artifacts/api-server/.env and restart the server.",
+          ? "لا يوجد مفتاح AI على السيرفر. أضف GEMINI_API_KEY (مجاني من aistudio.google.com) إلى ملف artifacts/api-server/.env ثم أعد تشغيل السيرفر."
+          : "No AI key is configured. Add GEMINI_API_KEY (free from aistudio.google.com) to artifacts/api-server/.env and restart the server.",
     });
     return;
   }
@@ -337,7 +337,7 @@ router.post("/match", async (req, res): Promise<void> => {
         meta: {
           source: "Himalayas",
           fetchedAt: new Date().toISOString(),
-          model: CLAUDE_MODEL,
+          model: activeModel(),
           requestedCountry: country ?? null,
           searchedWorldwide,
         },
@@ -349,12 +349,21 @@ router.post("/match", async (req, res): Promise<void> => {
       return;
     }
     req.log.error({ err: error }, "Profile match failed");
-    const invalidKey = error instanceof ClaudeError && (error.status === 401 || error.status === 403);
+    if (error instanceof AiError && error.status === 429) {
+      res.status(502).json({
+        error:
+          language === "ar"
+            ? "وصلت لحد الاستخدام المجاني مؤقتاً. انتظر دقيقة وحاول مرة أخرى."
+            : "The free AI quota was hit for now. Wait a minute and try again.",
+      });
+      return;
+    }
+    const invalidKey = error instanceof AiError && (error.status === 400 || error.status === 401 || error.status === 403) && /key|auth|permission/i.test(error.message);
     res.status(502).json({
       error: invalidKey
         ? language === "ar"
-          ? "مفتاح Claude API غير صالح. تأكد من ANTHROPIC_API_KEY في ملف .env."
-          : "The Claude API key was rejected. Check ANTHROPIC_API_KEY in your .env file."
+          ? "مفتاح الـ AI غير صالح. تأكد من المفتاح في ملف .env."
+          : "The AI API key was rejected. Check the key in your .env file."
         : language === "ar"
           ? "تعذر تحليل ملفك الآن. حاول مرة أخرى بعد قليل."
           : "Your profile could not be analyzed right now. Try again shortly.",
